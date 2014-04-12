@@ -24,55 +24,56 @@ import lr
 
 
 
-# load data set
-X_train,y_train=lr.gen_data(10000)
-X_test,y_test=lr.gen_data(100000)
 
 
 # classifiers
-names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Decision Tree",
-         "Random Forest", "AdaBoost", "Naive Bayes", "LDA", "QDA"]
-classifiers = [
-    KNeighborsClassifier(3),
-    SVC(kernel="linear", C=0.025),
-    SVC(gamma=2, C=1),
-    DecisionTreeClassifier(max_depth=5),
-    RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
-    AdaBoostClassifier(),
-    GaussianNB(),
-    LDA(),
-    QDA()]
+
+classifiers = {
+    "Nearest Neighbors 3": KNeighborsClassifier(3),
+    "Nearest Neighbors 5": KNeighborsClassifier(5),
+    "Linear SVM C=0.01":  SVC(kernel="linear", C=0.01),
+    "Linear SVM C=0.1":  SVC(kernel="linear", C=0.1),
+    "Linear SVM C=0.01":  SVC(kernel="linear", C=1),
+    "RBF SVC(gamma=2, C=0.1)": SVC(gamma=2, C=0.1),
+    "RBF SVC(gamma=4, C=1)": SVC(gamma=4, C=1),
+    "RBF SVC(gamma=2, C=1)": SVC(gamma=2, C=1),
+    "Decision Tree (5)": DecisionTreeClassifier(max_depth=5),
+    "Random Forest (max_depth=5, n_estimators=10, max_features=1)": RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
+    "AdaBoost":AdaBoostClassifier(),
+    "Naive Bayes":GaussianNB(),
+    "LDA":LDA(),
+    "QDA":QDA()}
     
+
+# load data set
+X_train,y_train=lr.gen_data(1000)
+X_test,y_test=lr.gen_data(10000)
+
+
     
 # set random num generator
 rng = np.random.RandomState(2)
 
 # split training /test set
 #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.4, random_state=rng)
-
-
-
+# check repeatable?
 
 # sklearn.cross_validation.StratifiedKFold(y, n_folds=3, indices=True, k=None)
-cv=KFold(len(X_train), n_folds=5,random_state=rng)
+# why doesn't it allow random number generator
+n_folds=5
+cv=KFold(len(X_train), n_folds=n_folds,random_state=rng)
 # cross validation
 scores_list=[]
-for name,clf in zip(names,classifiers):
+for name,clf in classifiers.iteritems():
     scores=cross_val_score(clf,X_train,y_train,cv=cv)
     clf.fit(X_train,y_train)
     sc=clf.score(X_test,y_test)
-    np.append(scores,sc)
+    scores=np.append(scores,sc)
     scores_list.append(scores)
-    
+names= classifiers.keys()
 df_scores=pd.DataFrame(scores_list[0],columns=[names[0]])
 for i,n in enumerate(names[1:]):
     df_scores[n]=scores_list[i]
-# parameter iteration
-
-#param_grid = [
-#  {'C': [1, 10, 100, 1000], 'kernel': ['linear']},
-#  {'C': [1, 10, 100, 1000], 'gamma': [0.001, 0.0001], 'kernel': ['rbf']},
-# ]
 #clf = GridSearchCV(estimator=svc, param_grid=dict(gamma=gammas),
 #...                    n_jobs=-1)
 # clf_new=GridSearchCV(clf, param_grid, 
@@ -83,9 +84,13 @@ for i,n in enumerate(names[1:]):
 
 # train model
 
+df_scores.sort(axis=1,inplace=True)
 
-# train model
-ax.plot(df_scores.iloc[4,:].values)
-ax.set_xticklabels(names)
-ax.errorbar(range(len(names)),df_scores[:4].mean().values,df_scores[:4].std().values/sqrt(4))
+plt.clf()
+ax=plt.subplot('111')
+ax.plot(df_scores.iloc[n_folds,:].values,'ro',label='test')
 
+plt.xticks(range(len(names)),df_scores.columns,rotation='vertical')
+
+ax.bar(range(len(names)),df_scores[:n_folds].mean().values,yerr=df_scores[:n_folds].std().values/sqrt(n_folds-1),align='center',label='x-val')
+plt.legend()
