@@ -25,8 +25,8 @@ import lr
 
 
 # load data set
-X_train,y_train=lr.gen_data(1000)
-X_test,y_test=lr.gen_data(10000)
+X_train,y_train=lr.gen_data(10000)
+X_test,y_test=lr.gen_data(100000)
 
 
 # classifiers
@@ -85,3 +85,7 @@ for i,n in enumerate(names[1:]):
 
 
 # train model
+ax.plot(df_scores.iloc[4,:].values)
+ax.set_xticklabels(names)
+ax.errorbar(range(len(names)),df_scores[:4].mean().values,df_scores[:4].std().values/sqrt(4))
+
