@@ -58,7 +58,7 @@ rng = np.random.RandomState(2)
 # sklearn.cross_validation.StratifiedKFold(y, n_folds=3, indices=True, k=None)
 # why doesn't it allow random number generator
 n_folds=5
-cv=KFold(len(X_train), n_folds=n_folds,random_state=rng)
+cv=KFold(len(X_train), n_folds=n_folds,random_state=rng,shuffle=True)
 # cross validation
 scores_list=[]
 best_list=[]
@@ -77,4 +77,5 @@ for name,(clf,param_grid) in classifiers.iteritems():
     
     
 scores_list.append(pd.DataFrame(best_list))
+#df_scores all contains
 df_scores_all=pd.concat(scores_list)
