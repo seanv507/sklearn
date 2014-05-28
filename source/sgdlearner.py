@@ -83,15 +83,18 @@ class SGDLearner():
 
     def reset(self):
 
-        self.scores=[]
+        self.scores = []
 
         #turn into dataframe?
         self.mn_grad = []
         self.st_grad = []
 
-        self.sgd.warm_start=False # reset learning ?does this reset learning rate time counter?
+        self.sgd.warm_start = False
+        # reset learning ?does this reset learning rate time counter?
         self._iT = 0
 
+        d = pd.Index([], name='timestep')
+        self.data = pd.DataFrame(index=d, columns=['part', 'train', 'test'])
 
     def learn(self, learn_for, probe_every):
         '''Train for learn_for and and store results probe_every'''
@@ -102,7 +105,7 @@ class SGDLearner():
                                  self.y_train[ind[time:time+probe_every]], [0, 1])
 
             self._iT += probe_every
-            self.sgd.warm_start=False #(not necessary? unless we use fit rather than partial)
+            self.sgd.warm_start = False  # (not necessary? unless we use fit rather than partial)
             self.calc_grad()
             mn = self.grad.mean(axis=0) * 1e-6
             st = self.grad.std(axis=0)*1e-6
@@ -111,15 +114,14 @@ class SGDLearner():
             self.mn_grad.append(st)
 
             ind_part = self.rng.randint(0, self.ntrain, int(self.ntrain*0.1))
-            scores = {'timestep': self._iT}
-            scores['part'] = \
+
+            self.data.loc[self._iT, 'part'] = \
                 self.sgd.score(self.X_train[ind_part, :],
                                self.y_train[ind_part])
-            scores['train'] = \
+            self.data.loc[self._iT, 'train'] = \
                 self.sgd.score(self.X_train, self.y_train)
-            scores['test'] = \
+            self.data.loc[self._iT, 'test'] = \
                 self.sgd.score(self.X_test, self.y_test)
-            self.scores.append(scores)
 
     def calc_grad(self):
         # now calculate current gradient variance
@@ -138,6 +140,24 @@ class SGDLearner():
         self.grad = np.diff(self.wts, axis=0)
         self.sgd.eta0 = eta0
         # restore orignal learning rate
+
+    def plot(self, ax_graph):
+        if not(self.data.empty):
+            for name, line in self.lines.iteritems():
+                line.set_data(self.data.index.values, self.data[name])
+            ax_graph.set_xlim(0,self.data.index.values[-1])
+            plt.draw() # update plot?
+        else:
+            ax_graph.cla()
+            self.lines = {}
+            ax_graph.set_xlabel('iter')
+            ax_graph.set_ylabel('class')
+            ax_graph.set_ylim(0,1)
+            colours = {'train': 'blue', 'part': 'green', 'test': 'red'}
+            for name, col in colours.iteritems():
+                self.lines[name] = plt.Line2D([], [], color=col, label=name)
+                ax_graph.add_line(self.lines[name])
+            ax_graph.legend(loc='lower left')
 
 
 #labels8 = labels==8
