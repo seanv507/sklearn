@@ -13,6 +13,7 @@ import pandas as pd
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans 
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.cross_validation import train_test_split
@@ -78,49 +79,61 @@ class SIFTTransform( ImageTransform):
             gray= cv2.cvtColor(img_rgb,cv2.COLOR_RGB2GRAY)
             
             sift = cv2.SIFT()
-            kp = sift.detect(gray,None)
-            kp_list.append(kp)
-        return kp_list
-        
-        
 
-
-def extract_keypoints( kp_list_images,labels ):
-#    fields={'pt_x':np.float,'pt_y':np.float,
-#            'angle':np.float, 'response':np.float,
-#            'octave':np.int, 'class_id':np.int}
+            kps = sift.detect(gray,None)
+            fields={'pt_x':np.float,'pt_y':np.float,
+            'angle':np.float, 'response':np.float,
+            'octave':np.int, 'class_id':np.int}
             
-    dict_list=[]
-    for i_image, kp_list in enumerate(kp_list_images):
-        for kp in kp_list:
-            d={}
-            d['id']=i_image
-            d['label']=labels[i_image]
-            d['pt_x'],d['pt_y'] =kp.pt
-            d['angle']=kp.angle
-            d['response']=kp.response
-            d['octave']=kp.octave
-            d['class_id']=kp.class_id
-            dict_list.append(d)
-            df_kp = pd.DataFrame(dict_list)
-    return df_kp
-    
+            pd.DataFrame(zeros((len(kps),6),fields)
+                
+            for kp in kps:
+                x,y =kp.pt
+                angle=kp.angle
+                response=kp.response
+                octave=kp.octave
+                class_id=kp.class_id
+                
+        return X
+        
 
 # define pipleine 
 # yaml script
 
 
-class Convolve:
-    # defaults necc for automatiion
-    def __init__(self, channels=3,height=32,width=32,stride=3,post_filter='average'):
+class ConvolveFit:
+    # defaults necc for automation
+    def __init__(self, channels=3,height=32,width=32, filter_height=8,filter_width=8,stride=3,filt=Kmeans(), post_filter='average'):
+        self.filter=filt
+        self.filter_height=filter_height
+        self.filter_width=filter_width
+        
+        self.post_filter=post_filter
     def fit(X,y=None):
         """ 
         generate subimages (so number of samples ie rows increases)
         apply kmeans/sparse pca...
         store feature vectors
         
-        """
+        """        
+        stride_x=range(0,self.width-self.sub_width,stride)
+        stride_y=range(0,self.height-self.sub_height,stride)
+        sub_images=[]
+        for image in X:
+            img_rgb=image.reshape((self.n_channels,self.height,self.width))
+            
+            for y_offset in strides_y:
+                for x_offset in strides_x:
+                    sub_image=img_rgb[:, y_offset:y_offset+self.filter_height, 
+                                      x_offset:x_offset+self.filter_width].ravel()
+                    sub_images.append(sub_image)
+           
+           # how to avoid duplicating data? and write to files, also so diff filters can be used           
+           all_sub_images=np.vstack(sub_images)             
+           self.filter.fit(all_sub_images)
+           # how to avoid duplicating data
         return self
+        
     def transform(self,X):
         """ convert each single image into features
         """
