@@ -169,6 +169,9 @@ def gcn_covar(X,n_channels=3, scale=1., subtract_mean=True, use_std=False,
                               sqrt_bias=0., min_divisor=1e-8):
     n_pixels=X.shape[1]/n_channels
     X=X.reshape((X.shape[0],n_channels,-1))
+    # we standardise all images - making results "invariant" 
+    # to lighting changes across images. Mean is overall colour, 
+    # covar is contrast. Correl?
     mean = X.mean(axis=2)
     if subtract_mean:
         X = X - mean[:,:, np.newaxis]  # Makes a copy.
