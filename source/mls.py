@@ -6,6 +6,7 @@ Created on Tue Jun  3 20:22:22 2014
 """
 
 import numpy as np
+import scipy as sp
 
 def test_data(nsamples):
     means=[[0,0], [2,2],[3,3]]
@@ -46,9 +47,11 @@ def mls(trainx,yt,lambd):
     smallx=trainx[rp,:]
 	# why np.sqrt(sss)???
 	# $Chol 1/2 n/sss (smallx' smallx)+ lambda sqrt(sss)I
-    C=np.linalg.cholesky(0.5*n/sss*(np.dot(smallx.T,smallx))+lambd*np.sqrt(sss)*np.eye(d))
+    C=sp.linalg.cho_factor(0.5*n/sss*(np.dot(smallx.T,smallx)) 
+    + lambd*np.sqrt(sss)*np.eye(d), lower=True)
     #true preconditioner 
-    C=np.linalg.cholesky(0.5*(np.dot(trainx.T,trainx))+lambd*np.sqrt(n)*np.eye(d))
+    C=sp.linalg.cho_factor(0.5*      (np.dot(trainx.T,trainx)) 
+    + lambd*np.sqrt(n)*np.eye(d), lower=True)
     
     #initialize accelerated gradient variables
     u=np.zeros((d,k))
@@ -59,13 +62,13 @@ def mls(trainx,yt,lambd):
     for i in range(100):
         pp, = multinom(trainx,u) # get only first elem of tuple
         g=np.dot(trainx.T,(yt-pp))        # gradient d x k
-        normg=np.linalg.norm(g,'fro')/np.sqrt(d*k*n)
+        normg=sp.linalg.norm(g,'fro')/np.sqrt(d*k*n)
         if normg<0.01:
             break
         
         #accelerated gradient updates
         wold=w                    
-        w=u+np.linalg.solve(C.T,(np.linalg.solve(C,g)))          
+        w=u+sp.linalg.cho_solve(C.T,(sp.linalg.cho_solve(C,g)))          
         gi=(1-li)/linext
         u=(1-gi)*w+gi*wold
         li=linext
