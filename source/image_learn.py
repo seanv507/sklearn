@@ -153,7 +153,19 @@ incorporate tangent distance?
  - a take image and filter and find closest match
  
 '''
-class Flatten
+class Flatten:
+    def fit(self,X,y=None):
+        self.shape=X.shape
+        return self
+        
+    def transform(self, X):
+        return X.reshape((X.shape[0],-1))
+        
+    def inverse_transform(self, X):
+        shape=list(self.shape)
+        shape[0]=X.shape[0]
+        return X.reshape(shape)
+        
 
 def reconstruct_kmeans(pca,filt):
     n_channels=3
