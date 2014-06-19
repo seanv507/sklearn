@@ -50,6 +50,8 @@ def load_cifar10():
         nloaded += 10000
         if nloaded >= ntrain  + ntest: break;
     
+    x=x.reshape((-1,3,32,32))
+    x=np.swapaxes( x, 1,2)
+    x=np.swapaxes( x, 2,3)
+    
     return x, y, label_names
-        
-        
