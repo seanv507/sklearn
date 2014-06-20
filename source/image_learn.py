@@ -167,7 +167,7 @@ class Flatten:
             X=X.reshape((1,-1))
         shape=list(self.shape)
         shape[0]=X.shape[0]
-        return X.reshape((shape))
+        return X.reshape(shape)
 
 def reconstruct_kmeans(pca,filt):
     n_channels=3
