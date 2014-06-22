@@ -18,16 +18,7 @@ Created on Tue Jun 17 17:39:05 2014
 
 #gs=GridSearchCV(log_r, param_grid={'C':[0.01,0.1,1,10,100]}, cv=kf)
 
-# generate sub image data for diff sizes (ideally random sampling position)
 
-images, image_labels, label_names=load_cifar10()
-
-
-
-#ct=ConvolveTransform()
-#patches=ct.generate_filter_data(images)
-
-#n_clusters=400
 #precompute_distances=False
 # n_clusters
 #filt=KMeans(n_clusters=n_clusters, precompute_distances=False)
@@ -79,3 +70,27 @@ filt_all_mbatch=MiniBatchKMeans(n_clusters=n_clusters, init='k-means++',  batch_
     #        init_size=None, max_iter=100, max_no_improvement=10,
     #        n_clusters=400, n_init=3, random_state=None,
     #        reassignment_ratio=0.01, tol=0.0, verbose=0)
+
+images, image_labels, label_names=load_cifar10()
+
+ct=ConvolveTransform()
+# generate sub image data for diff sizes (ideally random sampling position)
+patches=ct.generate_filter_data(images,20)
+patches_labels=np.repeat(image_labels,20)
+
+flat=Flatten()
+pca=PCA(whiten=True)
+pipeline=Pipeline([('flat',flat),('pca',pca)])
+pca_patches=pipeline.fit_transform(patches)
+
+
+n_clusters=500
+mbkmeans=MiniBatchKMeans(n_clusters=n_clusters, init='k-means++',  batch_size=1000 )
+mbkmeans.fit(pca_patches)
+
+%matplotlib
+import appnope
+appnope.nope()
+plt.plot(mbkmeans_pca_patches[0,:],'o')
+plt.plot(mbkmeans_pca_patches,'o',color=patches_labels)
+plt.plot(mbkmeans_pca_patches[0:5,:],'o',color=patches_labels)

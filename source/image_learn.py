@@ -169,23 +169,12 @@ class Flatten:
         shape[0]=X.shape[0]
         return X.reshape(shape)
 
-def reconstruct_kmeans(pca,filt):
-    n_channels=3
-    filter_height,filter_width=(8,8)
-    n_filters=filt.cluster_centers_.shape[0]
-    filters=filt.cluster_centers_.copy()
-    patches=pca.inverse_transform(filters)
-    patches=patches.reshape(patches.shape[0],filter_height,filter_width,n_channels)
-    # matplot lib expects  x,y, colour 
-
-def plot_pca(components,width,height,channels):
-    comp=components.copy().reshape((-1,width,height,channels))
-    return comp
     
-    
-def plot_patches(patches):
+def square_patches(patches):
+    ''' create square matrix from patches for plotting
+    '''
     n_filters,filter_width,filter_height,n_channels=patches.shape
-    n_tiles=np.int(np.sqrt(n_filters)+0.5) #ceiling
+    n_tiles=np.int(np.ceil(np.sqrt(n_filters))) 
     image=np.zeros((filter_width*n_tiles,filter_height*n_tiles,3))
 
     for i_filt in range(n_filters):
@@ -195,6 +184,27 @@ def plot_patches(patches):
         image[x_off:x_off+filter_width,y_off:y_off+filter_height,:] \
             =patches[i_filt,:,:,:]
     return image
+
+def plot_image_label_patches(patches,patch_labels, label_names, n_samples):
+    plt.subplot(4,3,1)
+
+    for ilabel in range(10):
+        plt.subplot(4,3,ilabel+1)
+        plt.title(label_names[ilabel])
+        ind=(patches_labels==ilabel).nonzero()[0]
+        samples=np.random.randint(ind.shape[0],size=n_samples)
+        im_patches=patches[ind[samples],:,:,:]
+        plt.imshow()
+
+
+
+def rescale(images):
+    '''  rescales rgb so that max(r,g,b)=255 and min(r,g,b)=0
+    '''
+    s=images.shape
+    y=images.reshape((shape[0],shape[1]*shape[2],shape[3]))
+    max_y=y.max(axis=1)
+    min_y
     
 def preprocess(X, n_components=50):
     ss=StandardScaler()
