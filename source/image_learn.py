@@ -186,15 +186,14 @@ def square_patches(patches):
     return image
 
 def plot_image_label_patches(patches,patch_labels, label_names, n_samples):
-    plt.subplot(4,3,1)
-
+    
     for ilabel in range(10):
-        plt.subplot(4,3,ilabel+1)
+        plt.figure(ilabel+1)
         plt.title(label_names[ilabel])
         ind=(patches_labels==ilabel).nonzero()[0]
         samples=np.random.randint(ind.shape[0],size=n_samples)
         im_patches=patches[ind[samples],:,:,:]
-        plt.imshow()
+        plt.imshow(square_patches(im_patches).astype(np.uint8))
 
 
 
