@@ -88,9 +88,10 @@ n_clusters=500
 mbkmeans=MiniBatchKMeans(n_clusters=n_clusters, init='k-means++',  batch_size=1000 )
 mbkmeans.fit(pca_patches)
 
-%matplotlib
 import appnope
 appnope.nope()
+%matplotlib
+
 plt.plot(mbkmeans_pca_patches[0,:],'o')
 plt.plot(mbkmeans_pca_patches,'o',color=patches_labels)
 plt.plot(mbkmeans_pca_patches[0:5,:],'o',color=patches_labels)

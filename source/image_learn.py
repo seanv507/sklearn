@@ -7,6 +7,7 @@ Created on Wed May 28 23:01:43 2014
 
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 import quasirng
 
 import pandas as pd
@@ -190,7 +191,7 @@ def plot_image_label_patches(patches,patch_labels, label_names, n_samples):
     for ilabel in range(10):
         plt.figure(ilabel+1)
         plt.title(label_names[ilabel])
-        ind=(patches_labels==ilabel).nonzero()[0]
+        ind=(patch_labels==ilabel).nonzero()[0]
         samples=np.random.randint(ind.shape[0],size=n_samples)
         im_patches=patches[ind[samples],:,:,:]
         plt.imshow(square_patches(im_patches).astype(np.uint8))
@@ -226,34 +227,54 @@ def preproc_coates(patches):
     pca_gcn_patches=pca.fit_transform(gcn_patches)
     return pca_gcn_patches,pca
     
-
-    
-def gcn(X,scale=1., subtract_mean=True, use_std=False,
+class GCN:
+    def __init__(self, scale=1., subtract_mean=True, use_std=False,
                               sqrt_bias=0., min_divisor=1e-8):
-    mean = X.mean(axis=1)
-    if subtract_mean:
-        X = X - mean[:, np.newaxis]  # Makes a copy.
-    else:
-        X = X.copy()    
-         # how to deal with colour!!!
-    if use_std:
-        # ddof=1 simulates MATLAB's var() behaviour, which is what Adam
-        # Coates' code does.
-        ddof = 1
-
-        # If we don't do this, X.var will return nan.
-        if X.shape[1] == 1:
-            ddof = 0
-
-        normalizers = np.sqrt(sqrt_bias + X.var(axis=1, ddof=ddof)) / scale
-    else:
-        normalizers = np.sqrt(sqrt_bias + (X ** 2).sum(axis=1)) / scale
-
-    # Don't normalize by anything too small.
-    normalizers[normalizers < min_divisor] = 1.
-
-    X /= normalizers[:, np.newaxis]  # Does not make a copy.
-    return X
+        self.scale=scale
+        self.subtract_mean=subtract_mean
+        self.use_std=use_std
+        self.sqrt_bias =sqrt_bias
+        self.min_divisor=min_divisor
+    
+    def fit(self, X,y=None):
+        # only used for inverse transform, not dealing with use_std issues
+        self.mean_=X.mean() if self.subtract_mean else 0
+        assert(self.subtract_mean==True)
+        
+        self.norm_=np.sqrt(X.var(axis=1,ddof=1)+self.sqrt_bias).mean()/self.scale
+        
+        return self
+    
+    def transform(self,X):
+        mean = X.mean(axis=1)
+        if self.subtract_mean:
+            X = X - mean[:, np.newaxis]  # Makes a copy.
+        else:
+            X = X.copy()    
+             # how to deal with colour!!!
+        if self.use_std:
+            # ddof=1 simulates MATLAB's var() behaviour, which is what Adam
+            # Coates' code does.
+            ddof = 1
+    
+            # If we don't do this, X.var will return nan.
+            if X.shape[1] == 1:
+                ddof = 0
+    
+            normalizers = np.sqrt(self.sqrt_bias + X.var(axis=1, ddof=ddof)) / self.scale
+        else:
+            normalizers = np.sqrt(self.sqrt_bias + (X ** 2).sum(axis=1)) / self.scale
+    
+        # Don't normalize by anything too small.
+        normalizers[normalizers < self.min_divisor] = 1.
+    
+        X /= normalizers[:, np.newaxis]  # Does not make a copy.
+        return X
+        
+    def inverse_transform(self, X):
+        ''' Guess transform by scaling by 128 and adding 128
+        '''
+        return X*self.norm_+self.mean_
 
 def gcn_covar(X,n_channels=3, scale=1., subtract_mean=True, 
                               sqrt_bias=0., min_divisor=1e-8):
