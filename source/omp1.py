@@ -13,6 +13,7 @@ class OMP1:
     
         summation = np.zeros(self.cluster_centers_.shape)
         counts = np.zeros((self.n_clusters,1))
+        self.inertia_=0        
         
         for i_start in range(0,X.shape[0],self.batch_size):
             # deal with 
@@ -34,21 +35,30 @@ class OMP1:
             counts += E.sum(axis=1)
             
             dots =  E.multiply(dots) # dots is now sparse
+            # inertia = x^2  -2x.y +  y^2, so 
+            # 2(1-abs(dots)) (ASSUMING input data (and clusters) have unit norm)
+            # 
+            self.inertia_-=np.abs(dots).sum()
             summation += np.dot(dots , X[i_start:i_end,:]) 
-            # take sum, weighted by dot product
+            # take sum of X vectors assigned to each cluster, weighted by dot product
             # nb weighting ensures +/- direction handled properly
+        self.inertia_=2*(X.shape[0]-self.inertia_)
+        # inertia will not sum over partial fits
         return summation, counts
+    
         
     def partial_fit(self,X, y=None):
+        self.inertia_=0
         for itr in range(self.iterations):
-            print('Running GSVQ:  iteration={0}... \n'.format(itr));
+            print('Running GSVQ:  iteration={0}...inertia={1}\n'.
+                format(itr, self.inertia_))
             
             # do assignment + accumulation
             summation,counts = self.gsvq_step(X)
         
             # reinit empty clusters
-            I=np.where((summation**2).sum(axis=1) < 0.001)[0];
-            summation[I,:] = np.random.randn(I.shape[0], X.shape[1]);
+            I=np.where((summation**2).sum(axis=1) < 0.001)[0]
+            summation[I,:] = np.random.randn(I.shape[0], X.shape[1])
         
             # normalize
             self.cluster_centers_ = summation/ \

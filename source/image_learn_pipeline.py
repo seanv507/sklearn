@@ -83,7 +83,7 @@ mbkmeans_filename= '../data/mbkmeans.pkl'
 
 
 gcn=image_learn.GCN(use_std=True,sqrt_bias=10)
-gcn.fit(patches.reshape((patches[0],-1)))
+gcn.fit(patches.reshape((patches.shape[0],-1)))
 
 pipeline_gcn=Pipeline([('flat',flat),('gcn',gcn),('pca',pca)])
 
@@ -93,7 +93,10 @@ omp1=OMP1(n_clusters=500, iterations=10)
 omp1.fit(pca_gcn_patches)
 
 
-#to do add clustering metric - 
+#to do add clustering metric -
+import sklearn.cluster.k_means_
+lab,ine =sklearn.cluster.k_means_._labels_inertia(pca_gcn_patches,None,omp1.cluster_centers_)
+
 
 
 
