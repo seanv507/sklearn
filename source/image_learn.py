@@ -24,6 +24,55 @@ from sklearn.cross_validation import train_test_split
 from sklearn.cross_validation import KFold
 from sklearn.grid_search import GridSearchCV
 
+def _im2col_distinct(A, size):
+    dy, dx = size
+    assert A.shape[0] % dy == 0
+    assert A.shape[1] % dx == 0
+
+    ncol = (A.shape[0]//dy) * (A.shape[1]//dx)
+    R = np.empty((ncol, dx*dy), dtype=A.dtype)
+    k = 0
+    for i in xrange(0, A.shape[0], dy):
+        for j in xrange(0, A.shape[1], dx):
+            R[k, :] = A[i:i+dy, j:j+dx].ravel()
+            k += 1
+    return R
+
+def _im2col_sliding(A, size):
+    dy, dx = size
+    xsz = A.shape[1]-dx+1
+    ysz = A.shape[0]-dy+1
+    R = np.empty((xsz*ysz, dx*dy), dtype=A.dtype)
+
+    for i in xrange(ysz):
+        for j in xrange(xsz):
+            R[i*xsz+j, :] = A[i:i+dy, j:j+dx].ravel()
+    return R
+
+def im2col(A, size, type='sliding'):
+    """This function behaves similar to *im2col* in MATLAB.
+
+    Parameters
+    ----------
+    A : 2-D ndarray
+        Image from which windows are obtained.
+    size : 2-tuple
+        Shape of each window.
+    type : {'sliding', 'distinct'}, optional
+        The type of the windows.
+
+    Returns
+    -------
+    windows : 2-D ndarray
+        The flattened windows stacked vertically.
+
+    """
+
+    if type == 'sliding':
+        return _im2col_sliding(A, size)
+    elif type == 'distinct':
+        return _im2col_distinct(A, size)
+    raise ValueError("invalid type of window")
 
 
 class ImageTransform:
