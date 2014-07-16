@@ -23,6 +23,7 @@ from sklearn.externals import joblib
 
 
 import cifar
+import convolve_transform 
 import image_learn
 
 # mac  disable MAC Mavericks AppNap which slows down ipython graphics
@@ -33,7 +34,7 @@ appnope.nope()
 
 images, image_labels, label_names=cifar.load_cifar10()
 
-ct=image_learn.ConvolveTransform()
+ct=convolve_transform.ConvolveTransform()
 # generate sub image data for diff sizes (ideally random sampling position)
 patches=ct.generate_filter_data(images,20)
 patches_labels=np.repeat(image_labels,20)
@@ -85,9 +86,12 @@ mbkmeans_filename= '../data/mbkmeans.pkl'
 gcn=image_learn.GCN(use_std=True,sqrt_bias=10)
 gcn.fit(patches.reshape((patches.shape[0],-1)))
 
-pipeline_gcn=Pipeline([('flat',flat),('gcn',gcn),('pca',pca)])
+pca_gcn=PCA(whiten=True)
 
-pca_gcn_patches=pipeline_gcn.transform(patches)
+
+pipeline_gcn=Pipeline([('flat',flat),('gcn',gcn),('pca',pca_gcn)])
+
+pca_gcn_patches=pipeline_gcn.fit_transform(patches)
 
 omp1=OMP1(n_clusters=500, iterations=10)
 omp1.fit(pca_gcn_patches)
