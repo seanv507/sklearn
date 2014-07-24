@@ -48,11 +48,14 @@ def mls(trainx, yt, lambd):
     smallx = trainx[rp, :]
     # why np.sqrt(sss)???
     # $Chol 1/2 n/sss (smallx' smallx)+ lambda sqrt(sss)I
-    C_low = sp.linalg.cho_factor(0.5 * n/sss * (np.dot(smallx.T, smallx))
-        + lambd * np.sqrt(sss) * np.eye(d), lower=True)
+    #C_low = sp.linalg.cho_factor(0.5 * n/sss * (np.dot(smallx.T, smallx))
+    #    + lambd * np.sqrt(sss) * np.eye(d), lower=True)
     #true preconditioner
     C_low =sp.linalg.cho_factor(0.5 *           (np.dot(trainx.T, trainx))
         + lambd * np.sqrt(n) * np.eye(d), lower=True)
+    C =np.linalg.cholesky(0.5 *           (np.dot(trainx.T, trainx))
+        + lambd * np.sqrt(n) * np.eye(d))
+
 
     #initialize accelerated gradient variables
     u = np.zeros((d, k))
@@ -69,7 +72,9 @@ def mls(trainx, yt, lambd):
 
         #accelerated gradient updates
         wold = w
-        w = u + sp.linalg.cho_solve((C_low[0].T, not(C_low[1])), (sp.linalg.cho_solve(C_low, g)))
+        #w = u + sp.linalg.cho_solve((C_low[0].T, not(C_low[1])), (sp.linalg.cho_solve(C_low, g)))
+        w = u + np.linalg.solve(C.T, np.linalg.solve(C, g))
+                
         gi = (1-li)/linext
         u = (1 - gi) * w + gi * wold
         li = linext
