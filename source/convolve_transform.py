@@ -22,7 +22,7 @@ def _im2col_distinct(A, size):
 
     ncol = (A.shape[0]//dy) * (A.shape[1]//dx)
     n_channels=1 if len(A)==2 else A.shape[2]
-    
+
     R = np.empty((ncol, dx*dy*n_channels), dtype=A.dtype)
     k = 0
     for i in xrange(0, A.shape[0], dy):
@@ -30,7 +30,7 @@ def _im2col_distinct(A, size):
             if len(A.shape)==3:
                 R[k, :] = A[i:i+dy, j:j+dx,:].ravel()
             else:
-                R[k, :] = A[i:i+dy, j:j+dx].ravel()                
+                R[k, :] = A[i:i+dy, j:j+dx].ravel()
             k += 1
     return R
 
@@ -39,7 +39,7 @@ def _im2col_sliding(A, size):
     xsz = A.shape[1]-dx+1 #n patches x direction
     ysz = A.shape[0]-dy+1
     n_channels=1 if len(A)==2 else A.shape[2]
-    
+
     R = np.empty((xsz*ysz, dx*dy*n_channels), dtype=A.dtype)
 
     for i in xrange(ysz):
@@ -78,7 +78,7 @@ def im2col(A, size, type='sliding'):
 
 
 
-# define pipleine 
+# define pipleine
 # yaml script
 
 
@@ -89,19 +89,20 @@ X consists of of array of images (n_images, n_rows, n_cols,n_channels)
 class ConvolveTransform (ImageTransform):
     # defaults necc for automation
     def __init__(self, height=32,width=32, channels=3,
-                 filter_height=8,filter_width=8,stride=2, filter_pipeline=None):
+                 filter_height=8,filter_width=8,stride=2, filter=None):
 
         self.filter_height=filter_height
         self.filter_width=filter_width
+        self.filter=filter
         self.stride=stride
         ImageTransform.__init__(self, height, width, channels)
-        
-    def generate_filter_data(self, X, n_samples):        
-        """ 
+
+    def generate_filter_data(self, X, n_samples):
+        """
         generate subimages (so number of samples ie rows increases)
         apply kmeans/sparse pca...
         store feature vectors
-        
+
         """
         n_images = X.shape[0]
 
@@ -110,7 +111,7 @@ class ConvolveTransform (ImageTransform):
         sample_coords=quasirng.halton(2, n_samples) * \
             [ max_filter_row, max_filter_col]
         sample_coords=(sample_coords+0.5).astype(np.int)
-        
+
         sub_images=np.zeros((n_images* n_samples,
                              self.filter_height,
                              self.filter_width,
@@ -118,71 +119,63 @@ class ConvolveTransform (ImageTransform):
         for i_image, image in enumerate(X):
             for i_sample,(row_offset,col_offset) in enumerate(sample_coords):
                 sub_images[i_image*n_samples+i_sample,:,:,:] \
-                          =image[ row_offset:row_offset+self.filter_height, 
+                          =image[ row_offset:row_offset+self.filter_height,
                                   col_offset:col_offset+self.filter_width,:]
-           
-           # how to avoid duplicating data? and write to files, also so diff filters can be used           
+
+           # how to avoid duplicating data? and write to files, also so diff filters can be used
         return sub_images
 
+    def transform(self, X):
 
-    def transform(self,X):
-        n_bases = dictionary.shape[0]
-        n_images=X.shape[0]
-        # we don't know size of dictionary            
+        #Z = self.filter.transform(X[0, :, :, :].ravel())
+        # deal with grayscale vs colour images
+        #_bases = Z.shape[1]
+        n_images = X.shape[0]
+        # we don't know size of dictionary
         # how to determine size of output after transform ...
-        
-        # compute features for all training images
-        XC = np.zeros((X.shape[0], n_bases*2*4))
-        for i in range(n_images):
-            if (i% 1000 == 0): 
-                print('Extracting features: {0} / {1}\n'.format(i, n_images))
-            
-            # extract overlapping sub-patches into rows of 'patches'
-            #patches are now rgb
-            patches=im2col(X[i,:,:,:],(self.filter_height,self.filter_width))
-            patches=self.filter.transform(patches)
-            # this below should all be done by filter
 
-            # compute activation
+        # compute features for all training images
+        
+        for i in range(n_images):
+            if (i % 1000 == 0):
+                print('Extracting features: {0} / {1}\n'.format(i, n_images))
+
+            # extract overlapping sub-patches into rows of 'patches'
+            # patches are now rgb
+            patches = im2col(X[i, :, :, :],
+                             (self.filter_height, self.filter_width))
+            # patches is now the data matrix of activations for each patch            
+            patches = self.filter.transform(patches)
+            if i==0:
+                n_bases=patches.shape[1]
+                XC = np.zeros((X.shape[0], n_bases*4))
+                print 'n_bases={0}'.format(n_bases)
             
-#            alpha=encParam;
-#            z = np.dot(patches, dictionary.T)
-#            patches = np.hstack(( np.max(z - alpha, 0), -np.max(-z - alpha, 0) ]))
-#            del z
-    #        case 'sc'
-    #        lambda=encParam;
-    #        z = sparse_codes(patches, D, lambda);
-    #        patches = [ max(z, 0), -min(z, 0) ];
-    #        otherwise
-    #        error('Unknown encoder type.');
-    #        end
-            # patches is now the data matrix of activations for each patch
             
             # reshape to 2*numBases-channel image
-            prows = self.height-self.filter_height+1;
-            pcols = self.width-self.filter_width+1;
-            patches = patches.reshape(( prows, pcols, -1))
-            
-            
+            prows = self.height - self.filter_height + 1
+            pcols = self.width - self.filter_width + 1
+            patches = patches.reshape((prows, pcols, -1))
             # pool over quadrants
             halfr = np.round(prows/2.0)
-            halfc = round(pcols/2.0)
-            q1 = patches[1:halfr, 1:halfc, :].sum(axis=0).sum(axis=1)
-            q2 = patches[halfr+1:, 1:halfc, :].sum(axis=0).sum(axis=1)
-            q3 = patches[1:halfr, halfc+1:, :].sum(axis=0).sum(axis=1)
-            q4 = patches[halfr+1:, halfc+1:, :].sum(axis=0).sum(axis=1)
-            
+            halfc = np.round(pcols/2.0)
+            # sum in x,y directions: after 1st sum becomes axis 0
+            q1 = patches[1:halfr, 1:halfc, :].sum(axis=0).sum(axis=0)
+            q2 = patches[halfr+1:, 1:halfc, :].sum(axis=0).sum(axis=0)
+            q3 = patches[1:halfr, halfc+1:, :].sum(axis=0).sum(axis=0)
+            q4 = patches[halfr+1:, halfc+1:, :].sum(axis=0).sum(axis=0)
+
             # concatenate into feature vector
-            XC[i,:] = np.hstack((q1.ravel(),q2.ravel(),q3.ravel(),q4.ravel()))
-        
-    
-        return XC 
+            XC[i, :] = np.hstack((q1.ravel(), q2.ravel(),
+                                 q3.ravel(), q4.ravel()))
+
+        return XC
 
 
 
 
 
-    
+
 '''
 1) generate sub images for "filter"
 2)
@@ -192,17 +185,17 @@ pretend filters are for template matching
 how do we define templates?
 incorporate tangent distance?
  - a take image and filter and find closest match
- 
+
 '''
 class Flatten:
 
     def fit( self, X, y=None):
         self.shape=X.shape
         return self
-        
+
     def transform(self, X):
         return X.reshape((X.shape[0],-1))
-        
+
     def inverse_transform(self,X):
         if len(X.shape)==1:
             X=X.reshape((1,-1))
@@ -210,4 +203,20 @@ class Flatten:
         shape[0]=X.shape[0]
         return X.reshape(shape)
 
-    
+
+class Threshold:
+
+    def __init__(self, alpha=1):
+        self.alpha = alpha
+
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        X = np.atleast_2d(X)
+        n_data, n_features = X.shape
+        Z = np.zeros((n_data, 2*n_features))
+        Z[:, 0:n_features] = (X > self.alpha) * X
+        Z[:, n_features:2*n_features] = (X < -self.alpha) * X
+
+        return Z
