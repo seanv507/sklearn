@@ -7,11 +7,12 @@ Created on Tue Jun  3 20:22:22 2014
 
 import numpy as np
 import scipy as sp
+import matplotlib.pyplot as plt
 
 
 def test_data(nsamples):
-    means = [[0,0], [2,2],[3,3]]
-    covars = [np.eye(2),np.eye(2),np.eye(2)]
+    means = [[0, 0], [2, 2], [3, 3]]
+    covars = [np.eye(2), np.eye(2), np.eye(2)]
     all_data = []
     all_labels = []
     nclasses = len(means)
@@ -29,30 +30,34 @@ def test_data(nsamples):
 
 
 def multinom(X, W):
+    ''' calculate 'multinomial logistic' function
+
+    '''
     k = W.shape[1]
-    pt = np.dot(X, W) #matrix n x k
+    pt = np.dot(X, W)  # matrix n x k
     max_pt = pt.max(axis=1).reshape(-1, 1)
     # numerically stable exp, remove exp(max_pt) from top and bottom
     q = np.exp(pt - np.tile(max_pt, (1, k)))
-    pp = q / np.tile(q.sum(axis=1).reshape((-1, 1)), (1, k)) # probabilistic predictions
+    pp = q / np.tile(q.sum(axis=1).reshape((-1, 1)), (1, k))  
+    # probabilistic predictions
     return pp, pt.argmax(axis=1)
 
 
 def mls(trainx, yt, lambd):
     # Multinomial logistic regression via least squares
-    [n , k] = yt.shape
+    [n, k] = yt.shape
     [_, d] = trainx.shape
     #compute preconditioner a subsample should suffice
-    sss = 2 * d #sub-sample size
-    rp = np.random.permutation (n)[:sss]
+    sss = 2 * d  # sub-sample size
+    rp = np.random.permutation(n)[:sss]
     smallx = trainx[rp, :]
     # why np.sqrt(sss)???
     # $Chol 1/2 n/sss (smallx' smallx)+ lambda sqrt(sss)I
     #C_low = sp.linalg.cho_factor(0.5 * n/sss * (np.dot(smallx.T, smallx))
     #    + lambd * np.sqrt(sss) * np.eye(d), lower=True)
     #true preconditioner
-    C_low =sp.linalg.cho_factor(0.5 *           (np.dot(trainx.T, trainx))
-        + lambd * np.sqrt(n) * np.eye(d), lower=True)
+    #C_low =sp.linalg.cho_factor(0.5 *           (np.dot(trainx.T, trainx))
+    #    + lambd * np.sqrt(n) * np.eye(d), lower=True)
     C =np.linalg.cholesky(0.5 *           (np.dot(trainx.T, trainx))
         + lambd * np.sqrt(n) * np.eye(d))
 
@@ -63,7 +68,11 @@ def mls(trainx, yt, lambd):
     #do not mess with these
     li = 1
     linext = 1
+    normg = 0
+    #import pdb; pdb.set_trace()
     for i in range(100):
+        print i, normg
+        
         pp,_ = multinom(trainx, u) # get only first elem of tuple
         g = np.dot(trainx.T, (yt - pp))        # gradient d x k
         normg = sp.linalg.norm(g, 'fro')/np.sqrt(d * k * n)
@@ -81,12 +90,6 @@ def mls(trainx, yt, lambd):
         linext = (1 + np.sqrt(1 + 4 * li**2))/2
     return w
 
-
-X,y=test_data(1000)
-w=mls(X,y,1)
-print w
-z, ind_z=multinom(X,w)
-plt.scatter(X[:,0],X[:,1],c=ind_z)
 
 #yt is n x k where class is from 0:k
 
@@ -114,3 +117,11 @@ plt.scatter(X[:,0],X[:,1],c=ind_z)
 #        pp=qt./tile(qt.sum(axis=1),(1,k))
 #        t=0.1*0.5+0.9*2*(max(pp.T*(1-pp.T))).T
 #return ps
+
+
+if __name__ == "__main__":
+    X,y=test_data(1000)
+    w=mls(X,y,1)
+    print w
+    z, ind_z=multinom(X,w)
+    plt.scatter(X[:,0],X[:,1],c=ind_z)
