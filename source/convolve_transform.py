@@ -148,9 +148,7 @@ class ConvolveTransform (ImageTransform):
             patches = self.filter.transform(patches)
             if i==0:
                 n_bases=patches.shape[1]
-                XC = np.zeros((X.shape[0], n_bases*4))
-                print 'n_bases={0}'.format(n_bases)
-            
+                XC = np.zeros((X.shape[0], n_bases*4))            
             
             # reshape to 2*numBases-channel image
             prows = self.height - self.filter_height + 1
@@ -215,8 +213,10 @@ class Threshold:
     def transform(self, X):
         X = np.atleast_2d(X)
         n_data, n_features = X.shape
-        Z = np.zeros((n_data, 2*n_features))
-        Z[:, 0:n_features] = (X > self.alpha) * X
-        Z[:, n_features:2*n_features] = (X < -self.alpha) * X
-
+        if (X<0).sum()>0:
+            Z = np.zeros((n_data, 2*n_features))
+            Z[:, n_features:2*n_features] = (X < -self.alpha) * X
+            Z[:, 0:n_features] = (X > self.alpha) * X
+        else:
+            Z = (X > self.alpha) * X
         return Z
