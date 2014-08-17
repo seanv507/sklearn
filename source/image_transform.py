@@ -53,7 +53,7 @@ class SIFTTransform( ImageTransform):
             'angle':np.float, 'response':np.float,
             'octave':np.int, 'class_id':np.int}
             
-            pd.DataFrame(zeros((len(kps),6),fields))
+            pd.DataFrame(np.zeros((len(kps),6),fields))
                 
             for kp in kps:
                 x,y =kp.pt

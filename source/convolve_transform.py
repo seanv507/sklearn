@@ -5,13 +5,8 @@ Created on Sat Jul  5 21:30:00 2014
 @author: sean
 """
 
-import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 import quasirng
-
-import pandas as pd
-from sklearn.externals import joblib
 
 from image_transform import *
 
@@ -178,45 +173,4 @@ class ConvolveTransform (ImageTransform):
 1) generate sub images for "filter"
 2)
 
-
-pretend filters are for template matching
-how do we define templates?
-incorporate tangent distance?
- - a take image and filter and find closest match
-
 '''
-class Flatten:
-
-    def fit( self, X, y=None):
-        self.shape=X.shape
-        return self
-
-    def transform(self, X):
-        return X.reshape((X.shape[0],-1))
-
-    def inverse_transform(self,X):
-        if len(X.shape)==1:
-            X=X.reshape((1,-1))
-        shape=list(self.shape)
-        shape[0]=X.shape[0]
-        return X.reshape(shape)
-
-
-class Threshold:
-
-    def __init__(self, alpha=1):
-        self.alpha = alpha
-
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, X):
-        X = np.atleast_2d(X)
-        n_data, n_features = X.shape
-        if (X<0).sum()>0:
-            Z = np.zeros((n_data, 2*n_features))
-            Z[:, n_features:2*n_features] = (X < -self.alpha) * X
-            Z[:, 0:n_features] = (X > self.alpha) * X
-        else:
-            Z = (X > self.alpha) * X
-        return Z
